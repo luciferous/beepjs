@@ -66,7 +66,7 @@ Beep.prototype = {
         filters = filters || [];
         var format = utils.ushort;
         var applyfilters = utils.compose(filters);
-        var samples = map(
+        var samples = utils.map(
             function(sample) { return format(applyfilters(sample)); },
             this.generate(freq)
         ).join("");
