@@ -52,6 +52,34 @@ var utils = {
             result.push(fn(items[i]));
         }
         return result;
+    },
+    getattr: function(attr) {
+        return function(items) {
+            return items[attr];
+        };
+    },
+    zip: function() {
+        if (arguments.length == 0) return [];
+        var lists = Array.prototype.slice.call(arguments);
+        var result = [];
+        var min = Math.min.apply(null, utils.map(utils.getattr("length"), lists));
+        for (var i = 0; i < min; i++) {
+            result.push(utils.map(utils.getattr(i), lists));
+        }
+        return result;
+    },
+    sum: function(numbers) {
+        var total = 0;
+        for (var i = 0; i < numbers.length; i++) {
+            total += numbers[i];
+        }
+        return total;
+    },
+    bind: function(ctx, fn) {
+        return function() {
+            var args = Array.prototype.slice.call(arguments);
+            return fn.apply(ctx, args);
+        };
     }
 };
 function Beep(samplerate) {
@@ -81,7 +109,10 @@ Beep.prototype = {
         var applyfilters = utils.compose(filters);
         var samples = utils.map(
             function(sample) { return format(applyfilters(sample)); },
-            this.generate(freq)
+            typeof freq == "number"
+                ? this.generate(freq)
+                : utils.map(utils.sum, utils.zip.apply(
+                    null, utils.map(utils.bind(this, this.generate), freq)))
         ).join("");
         var reps = Math.ceil(duration * this.samplerate / samples.length);
         var data = new Array(reps).join(samples);
