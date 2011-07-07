@@ -35,8 +35,11 @@ var utils = {
         }
         return a;
     },
-    lcm: function (a, b) {
+    lcm: function(a, b) {
         return Math.floor(a * b / utils.gcd(a, b));
+    },
+    lcmm: function() {
+        return utils.foldl(utils.lcm, Array.prototype.slice.call(arguments));
     },
     compose: function(fns) {
         return function(a) {
@@ -69,17 +72,28 @@ var utils = {
         return result;
     },
     sum: function(numbers) {
-        var total = 0;
-        for (var i = 0; i < numbers.length; i++) {
-            total += numbers[i];
-        }
-        return total;
+        return utils.foldl(function(a, b) { return a + b; }, numbers);
     },
     bind: function(ctx, fn) {
         return function() {
             var args = Array.prototype.slice.call(arguments);
             return fn.apply(ctx, args);
         };
+    },
+    foldl: function(fn, items) {
+        if (items.length == 1) return items[0];
+        var result = fn(items[0], items[1]);
+        for (var i = 2; i < items.length; i++) {
+            result = fn(result, items[i]);
+        }
+        return result;
+    },
+    lmul: function(n, items) {
+        var result = [].concat(items);
+        for (var i = 1; i < n; i++) {
+            result = result.concat(items);
+        }
+        return result;
     }
 };
 function Beep(samplerate) {
@@ -104,18 +118,18 @@ Beep.prototype = {
         return result;
     },
     encode: function(freq, duration, filters) {
+        freq = typeof freq == "number" ? [freq] : freq;
         filters = filters || [];
-        var format = utils.ushort;
-        var applyfilters = utils.compose(filters);
-        var samples = utils.map(
-            function(sample) { return format(applyfilters(sample)); },
-            typeof freq == "number"
-                ? this.generate(freq)
-                : utils.map(utils.sum, utils.zip.apply(
-                    null, utils.map(utils.bind(this, this.generate), freq)))
-        ).join("");
+        var gens = utils.map(utils.bind(this, this.generate), freq);
+        var lcm = utils.lcmm.apply(null, utils.map(utils.getattr("length"), gens));
+        var normalized = utils.map(function(gen) {
+            return utils.lmul(lcm / gen.length, gen); }, gens);
+        var transforms = utils.compose(
+            [utils.sum].concat(filters).concat([utils.ushort]));
+        var samples = utils.map(transforms, utils.zip.apply(null, normalized));
         var reps = Math.ceil(duration * this.samplerate / samples.length);
-        var data = new Array(reps).join(samples);
+        var fulldata = new Array(reps + 1).join(samples.join(""));
+        var data = fulldata.substr(0, this.samplerate * duration * 2);
         var fmtChunk = [
             ["f", "m", "t", " "].join(""),
             utils.ulong(Beep.PCM_CHUNK_SIZE),
