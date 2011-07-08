@@ -133,11 +133,11 @@ Beep.prototype = {
         return map(function(t) { return utils.sum(map(sample(t), freqs)); },
                    utils.range(lcm));
     },
-    encode: function(freq, duration, filters) {
+    encode: function(freqs, duration, filters) {
         freqs = freqs instanceof Array ? freqs : [freqs];
         var transforms = utils.compose(
-            [utils.sum].concat(filters || []).concat([utils.ushort]));
-        var samples = utils.map(transforms, utils.zip.apply(null, this.generate(freqs)));
+            (filters || []).concat([utils.ushort]));
+        var samples = utils.map(transforms, this.generate(freqs));
         var reps = Math.ceil(duration * this.samplerate / samples.length);
         var fulldata = new Array(reps + 1).join(samples.join(""));
         var data = fulldata.substr(0, this.samplerate * duration * 2);
