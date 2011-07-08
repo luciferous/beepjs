@@ -38,9 +38,6 @@ var utils = {
     lcm: function(a, b) {
         return Math.floor(a * b / utils.gcd(a, b));
     },
-    lcmm: function() {
-        return utils.foldl(utils.lcm, Array.prototype.slice.call(arguments));
-    },
     compose: function(fns) {
         return function(a) {
             for (var i = 0; i < fns.length; i++) {
@@ -85,13 +82,6 @@ var utils = {
         var result = fn(items[0], items[1]);
         for (var i = 2; i < items.length; i++) {
             result = fn(result, items[i]);
-        }
-        return result;
-    },
-    lmul: function(n, items) {
-        var result = [].concat(items);
-        for (var i = 1; i < n; i++) {
-            result = result.concat(items);
         }
         return result;
     },
