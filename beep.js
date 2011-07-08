@@ -52,7 +52,7 @@ var utils = {
     map: function(fn, items) {
         var result = [];
         for (var i = 0; i < items.length; i++) {
-            result.push(fn(items[i]));
+            result.push(fn.call(this, items[i]));
         }
         return result;
     },
@@ -94,6 +94,16 @@ var utils = {
             result = result.concat(items);
         }
         return result;
+    },
+    mulmod: function(a, b, c) {
+        return (a * b) % c;
+    },
+    range: function(len) {
+        var result = [];
+        for (var i = 0; i < len; i++) {
+            result.push(i);
+        }
+        return result;
     }
 };
 function Beep(samplerate) {
@@ -109,24 +119,25 @@ function Beep(samplerate) {
     }
 }
 Beep.prototype = {
-    generate: function(freq) {
-        var result = [];
-        var sinelength = utils.lcm(this.samplerate, freq) / freq;
-        for (var i = 0; i < sinelength; i++) {
-            result.push(this.sine[(i * freq) % this.samplerate]);
-        }
-        return result;
+    generate: function(freqs) {
+        freqs = freqs instanceof Array ? freqs : [freqs];
+        var map = utils.bind(this, utils.map);
+        var periods = map(function(a) {
+            return utils.lcm(this.samplerate, a) / a; }, freqs);
+        var lcm = utils.foldl(utils.lcm, periods);
+        var sample = function(time) {
+            return function(freq) {
+                return this.sine[utils.mulmod(time, freq, this.samplerate)];
+            };
+        };
+        return map(function(t) { return utils.sum(map(sample(t), freqs)); },
+                   utils.range(lcm));
     },
     encode: function(freq, duration, filters) {
-        freq = typeof freq == "number" ? [freq] : freq;
-        filters = filters || [];
-        var gens = utils.map(utils.bind(this, this.generate), freq);
-        var lcm = utils.lcmm.apply(null, utils.map(utils.getattr("length"), gens));
-        var normalized = utils.map(function(gen) {
-            return utils.lmul(lcm / gen.length, gen); }, gens);
+        freqs = freqs instanceof Array ? freqs : [freqs];
         var transforms = utils.compose(
-            [utils.sum].concat(filters).concat([utils.ushort]));
-        var samples = utils.map(transforms, utils.zip.apply(null, normalized));
+            [utils.sum].concat(filters || []).concat([utils.ushort]));
+        var samples = utils.map(transforms, utils.zip.apply(null, this.generate(freqs)));
         var reps = Math.ceil(duration * this.samplerate / samples.length);
         var fulldata = new Array(reps + 1).join(samples.join(""));
         var data = fulldata.substr(0, this.samplerate * duration * 2);
