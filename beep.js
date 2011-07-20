@@ -165,4 +165,4 @@ Beep.LINEAR_QUANTIZATION = 1;
 Beep.PCM_CHUNK_SIZE = 16;
 Beep.utils = utils;
 ns.Beep = Beep;
-})(window["NS_BEEP"] || window);
+})(window[window.NS_BEEP] || window);
