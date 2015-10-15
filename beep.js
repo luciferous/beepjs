@@ -153,12 +153,15 @@ Beep.prototype = {
         ].join("");
         return [header, fmtChunk, dataChunk].join("");
     },
-    play: function(freq, duration, filters) {
+    play: function(freq, duration, filters, callback) {
         filters = filters || [];
         var data = btoa(this.encode(freq, duration, filters));
         var audio = document.createElement("audio");
         audio.src = "data:audio/x-wav;base64," + data;
         audio.play();
+        if (typeof callback != 'undefined') {
+            audio.onended = callback;
+        }
     }
 };
 Beep.LINEAR_QUANTIZATION = 1;
